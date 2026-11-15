@@ -1,0 +1,52 @@
+version: 2.1
+
+jobs:
+  test:
+    docker:
+      - image: cimg/python:3.11
+    resource_class: small
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - pip-test-v1-{{ arch }}-{{ checksum "requirements.txt" }}
+      - run:
+          name: Установка зависимостей
+          command: python -m pip install -r requirements.txt
+      - save_cache:
+          key: pip-test-v1-{{ arch }}-{{ checksum "requirements.txt" }}
+          paths:
+            - ~/.cache/pip
+      - run:
+          name: Запуск тестов pytest
+          command: python -m pytest -v --junitxml=test-results/pytest.xml
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: test-results
+
+  style:
+    docker:
+      - image: cimg/python:3.11
+    resource_class: small
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - pip-style-v1-{{ arch }}-{{ checksum "requirements.txt" }}
+      - run:
+          name: Установка зависимостей
+          command: python -m pip install -r requirements.txt
+      - save_cache:
+          key: pip-style-v1-{{ arch }}-{{ checksum "requirements.txt" }}
+          paths:
+            - ~/.cache/pip
+      - run:
+          name: Проверка оформления Black
+          command: python -m black --check app.py test_app.py
+
+workflows:
+  build-and-test:
+    jobs:
+      - test
+      - style
